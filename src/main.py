@@ -18,8 +18,6 @@ from src.engine.consensus_calc import (
 from src.extraction.scraper import extrair_carteiras_valor
 from src.core.config import settings
 
-# Ano padrão de início do histórico quando nenhum período é especificado
-_ANO_INICIO_PADRAO = 2022
 
 
 def _parse_historico_period(valor: str) -> tuple[int, int]:
@@ -44,7 +42,7 @@ def _parse_historico_period(valor: str) -> tuple[int, int]:
     hoje = datetime.now(timezone.utc)
 
     if valor == "all":
-        return _ANO_INICIO_PADRAO, 1
+        return settings.ANO_INICIO_HISTORICO, 1
 
     # Tenta YYYY-MM primeiro, depois YYYY
     if "-" in valor:
@@ -79,10 +77,10 @@ def _parse_historico_period(valor: str) -> tuple[int, int]:
         logger.error(f"Mês inválido: {mes}. Deve estar entre 01 e 12.")
         sys.exit(1)
 
-    if ano < _ANO_INICIO_PADRAO:
+    if ano < settings.ANO_INICIO_HISTORICO:
         logger.error(
             f"Ano {ano} é anterior ao início dos dados disponíveis "
-            f"({_ANO_INICIO_PADRAO})."
+            f"({settings.ANO_INICIO_HISTORICO})."
         )
         sys.exit(1)
 
@@ -119,7 +117,7 @@ def main() -> None:
         metavar="PERIODO",
         help=(
             "Baixar histórico de carteiras. Sem valor: tudo desde "
-            f"Jan/{_ANO_INICIO_PADRAO}. "
+            f"Jan/{settings.ANO_INICIO_HISTORICO}. "
             "Aceita YYYY (ex: 2024) ou YYYY-MM (ex: 2024-03)."
         ),
     )
