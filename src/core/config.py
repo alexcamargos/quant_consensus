@@ -13,5 +13,8 @@ class Settings:
     # System
     DB_PATH: str = os.getenv("DB_PATH", "quant_consensus_prod.duckdb")
 
+    # Histórico
+    ANO_INICIO_HISTORICO: int = 2022
+
 
 settings = Settings()
