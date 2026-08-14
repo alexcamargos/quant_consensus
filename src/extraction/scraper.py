@@ -7,8 +7,7 @@ from typing import Any, List, Dict, Union
 from loguru import logger
 from datetime import datetime, timezone
 
-# Ano padrão de início do histórico
-_ANO_INICIO_PADRAO = 2022
+from src.core.config import settings
 
 
 def _extrair_html_para_carteiras(html: bytes) -> List[Dict[str, Any]]:
@@ -98,7 +97,7 @@ def extrair_carteiras_valor(
         return carteiras
 
     # Lógica para baixar o histórico
-    ano_ini = ano_inicio if ano_inicio is not None else _ANO_INICIO_PADRAO
+    ano_ini = ano_inicio if ano_inicio is not None else settings.ANO_INICIO_HISTORICO
     mes_ini = mes_inicio if mes_inicio is not None else 1
 
     logger.info(
