@@ -7,16 +7,27 @@ from typing import Any, List, Dict, Union
 from loguru import logger
 from datetime import datetime, timezone
 
+# Ano padrão de início do histórico
+_ANO_INICIO_PADRAO = 2022
+
+
 def _extrair_html_para_carteiras(html: bytes) -> List[Dict[str, Any]]:
-    """Função auxiliar para fazer o parse do HTML e extrair as carteiras."""
+    """Função auxiliar para fazer o parse do HTML e extrair as carteiras.
+
+    Args:
+        html: Conteúdo HTML em bytes da página raspada.
+
+    Returns:
+        Lista de dicionários com chaves ``corretora`` e ``tickers``.
+    """
     soup = BeautifulSoup(html, 'html.parser')
     corretoras_divs = soup.find_all('div', class_='bx-corretoras')
-    
+
     if not corretoras_divs:
         return []
-    
+
     carteiras = []
-    
+
     for div in corretoras_divs:
         nome_corretora = div.get('data-name', 'Desconhecida').strip()
         tickers = []
@@ -28,29 +39,40 @@ def _extrair_html_para_carteiras(html: bytes) -> List[Dict[str, Any]]:
                     ticker = tds[1].get_text(strip=True)
                     if ticker:
                         tickers.append(ticker)
-        
+
         if tickers:
             carteiras.append({
                 "corretora": nome_corretora,
                 "tickers": tickers
             })
-            
+
     return carteiras
 
-def extrair_carteiras_valor(url: str, baixar_historico: bool = False, meses_ignorados: set[str] = None) -> Union[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
-    """
-    Acessa a URL da Carteira Valor, faz o parse do HTML e extrai
+
+def extrair_carteiras_valor(
+    url: str,
+    baixar_historico: bool = False,
+    meses_ignorados: set[str] | None = None,
+    ano_inicio: int | None = None,
+    mes_inicio: int | None = None,
+) -> Union[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
+    """Acessa a URL da Carteira Valor, faz o parse do HTML e extrai
     as recomendações de cada corretora.
 
     Args:
-        url (str): URL base da página Carteira Valor.
-        baixar_historico (bool): Se verdadeiro, baixa todos os meses a partir de Jan/2022.
-        meses_ignorados (set[str], optional): Conjunto de meses (ex: '2023-01') que não devem ser baixados.
+        url: URL base da página Carteira Valor.
+        baixar_historico: Se verdadeiro, baixa meses históricos.
+        meses_ignorados: Conjunto de meses (ex: ``'2023-01'``) que não
+            devem ser baixados (cache).
+        ano_inicio: Ano a partir do qual baixar o histórico.
+            Padrão: ``2022``.
+        mes_inicio: Mês a partir do qual baixar o histórico (1-12).
+            Padrão: ``1`` (janeiro).
 
     Returns:
-        Union[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]: 
-            Se baixar_historico=False, retorna a lista de carteiras do mês atual.
-            Se baixar_historico=True, retorna um dicionário { 'YYYY-MM': [carteiras...] }.
+        Se ``baixar_historico=False``, retorna a lista de carteiras do
+        mês atual.  Se ``baixar_historico=True``, retorna um dicionário
+        ``{ 'YYYY-MM': [carteiras...] }``.
     """
     url_base = url.rstrip('/')
     meses_ignorados = meses_ignorados or set()
@@ -76,29 +98,33 @@ def extrair_carteiras_valor(url: str, baixar_historico: bool = False, meses_igno
         return carteiras
 
     # Lógica para baixar o histórico
-    logger.info("Iniciando raspagem de histórico completo a partir de 2022-01.")
+    ano_ini = ano_inicio if ano_inicio is not None else _ANO_INICIO_PADRAO
+    mes_ini = mes_inicio if mes_inicio is not None else 1
+
+    logger.info(
+        f"Iniciando raspagem de histórico a partir de {ano_ini}-{mes_ini:02d}."
+    )
     historico_resultado: Dict[str, List[Dict[str, Any]]] = {}
-    
+
     hoje = datetime.now(timezone.utc)
     ano_atual = hoje.year
     mes_atual = hoje.month
 
-    for ano in range(2022, ano_atual + 1):
-        for mes in range(1, 13):
+    for ano in range(ano_ini, ano_atual + 1):
+        primeiro_mes = mes_ini if ano == ano_ini else 1
+        for mes in range(primeiro_mes, 13):
             if ano == ano_atual and mes > mes_atual:
                 break
-                
+
             mes_str = f"{ano}-{mes:02d}"
-            
+
             if mes_str in meses_ignorados:
                 logger.info(f"[{mes_str}] Mês já presente no cache, pulando raspagem.")
                 continue
-            
-            # Formata URL histórica ou base para o mês atual
-            # Nota: O site suporta /historico/M/YYYY até para o mês atual,
-            # mas vamos usar a URL montada.
+
+            # Formata URL histórica
             url_historico = f"{url_base}/historico/{mes}/{ano}"
-            
+
             logger.debug(f"Acessando histórico {mes_str} na URL: {url_historico}")
             try:
                 req = urllib.request.Request(
@@ -115,8 +141,9 @@ def extrair_carteiras_valor(url: str, baixar_historico: bool = False, meses_igno
                         logger.warning(f"[{mes_str}] Nenhuma carteira encontrada.")
             except Exception as e:
                 logger.error(f"Erro ao acessar histórico {mes_str} ({url_historico}): {e}")
-            
+
             # Pequeno delay para não sobrecarregar o servidor
             time.sleep(0.5)
 
     return historico_resultado
+
