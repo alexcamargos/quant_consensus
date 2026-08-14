@@ -40,23 +40,22 @@ O resultado final e exibido diretamente no terminal como um ranking Top 10.
 
 ## Arquitetura
 
-```
-                    +------------------+
-                    |     main.py      |  (Orquestrador)
-                    +--------+---------+
-                             |
-            +----------------+----------------+
-            |                |                |
-   +--------v------+  +-----v--------+  +----v-----------+
-   |   ingestion/   |  |  extraction/ |  |    engine/      |
-   |  web_scraper   |  |   scraper    |  | consensus_calc  |
-   +--------+------+  +-----+--------+  +----+-----------+
-            |                |                |
-            +----------------+----------------+
-                             |
-                    +--------v---------+
-                    |  DuckDB (local)  |
-                    +------------------+
+```mermaid
+flowchart TD
+    A["main.py (Orquestrador)"] --> B["ingestion/web_scraper"]
+    A --> C["extraction/scraper"]
+    A --> D["engine/consensus_calc"]
+
+    B --> E[("DuckDB (local)")]
+    C --> E
+    D --> E
+
+    subgraph core ["src/core/"]
+        F["config.py"]
+        G["logger.py"]
+    end
+
+    A -.-> core
 ```
 
 - **`src/core/`** -- Configuracoes centralizadas (`config.py`) e logging
