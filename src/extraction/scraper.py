@@ -1,14 +1,14 @@
 """Módulo para raspagem direta da página Carteira Valor."""
 
-import urllib.request
 import time
+from typing import Any, Dict, List, Union
+
+import requests
 from bs4 import BeautifulSoup
-from typing import Any, List, Dict, Union
-from loguru import logger
 from datetime import datetime, timezone
+from loguru import logger
 
 from src.core.config import settings
-
 
 def _extrair_html_para_carteiras(html: bytes) -> List[Dict[str, Any]]:
     """Função auxiliar para fazer o parse do HTML e extrair as carteiras.
@@ -58,6 +58,10 @@ def extrair_carteiras_valor(
     """Acessa a URL da Carteira Valor, faz o parse do HTML e extrai
     as recomendações de cada corretora.
 
+    Utiliza ``requests.Session`` para reutilizar conexões TCP/TLS
+    (keep-alive), reduzindo significativamente a latência ao fazer
+    múltiplas requisições sequenciais ao mesmo host.
+
     Args:
         url: URL base da página Carteira Valor.
         baixar_historico: Se verdadeiro, baixa meses históricos.
@@ -76,73 +80,69 @@ def extrair_carteiras_valor(
     url_base = url.rstrip('/')
     meses_ignorados = meses_ignorados or set()
 
-    if not baixar_historico:
-        logger.info(f"Iniciando raspagem da página: {url}")
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-            )
-            with urllib.request.urlopen(req) as response:
-                html = response.read()
-        except Exception as e:
-            logger.error(f"Erro ao acessar a URL {url}: {e}")
-            return []
+    with requests.Session() as session:
+        session.headers.update(settings.DEFAULT_HEADERS)
 
-        carteiras = _extrair_html_para_carteiras(html)
-        if not carteiras:
-            logger.warning("Nenhuma corretora encontrada com a classe 'bx-corretoras'.")
-        else:
-            logger.info(f"Extraídas carteiras de {len(carteiras)} corretoras.")
-        return carteiras
-
-    # Lógica para baixar o histórico
-    ano_ini = ano_inicio if ano_inicio is not None else settings.ANO_INICIO_HISTORICO
-    mes_ini = mes_inicio if mes_inicio is not None else 1
-
-    logger.info(
-        f"Iniciando raspagem de histórico a partir de {ano_ini}-{mes_ini:02d}."
-    )
-    historico_resultado: Dict[str, List[Dict[str, Any]]] = {}
-
-    hoje = datetime.now(timezone.utc)
-    ano_atual = hoje.year
-    mes_atual = hoje.month
-
-    for ano in range(ano_ini, ano_atual + 1):
-        primeiro_mes = mes_ini if ano == ano_ini else 1
-        for mes in range(primeiro_mes, 13):
-            if ano == ano_atual and mes > mes_atual:
-                break
-
-            mes_str = f"{ano}-{mes:02d}"
-
-            if mes_str in meses_ignorados:
-                logger.info(f"[{mes_str}] Mês já presente no cache, pulando raspagem.")
-                continue
-
-            # Formata URL histórica
-            url_historico = f"{url_base}/historico/{mes}/{ano}"
-
-            logger.debug(f"Acessando histórico {mes_str} na URL: {url_historico}")
+        if not baixar_historico:
+            logger.info(f"Iniciando raspagem da página: {url}")
             try:
-                req = urllib.request.Request(
-                    url_historico,
-                    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-                )
-                with urllib.request.urlopen(req) as response:
-                    html = response.read()
-                    carteiras = _extrair_html_para_carteiras(html)
+                response = session.get(url, timeout=settings.REQUEST_TIMEOUT)
+                response.raise_for_status()
+            except requests.RequestException as e:
+                logger.error(f"Erro ao acessar a URL {url}: {e}")
+                return []
+
+            carteiras = _extrair_html_para_carteiras(response.content)
+            if not carteiras:
+                logger.warning("Nenhuma corretora encontrada com a classe 'bx-corretoras'.")
+            else:
+                logger.info(f"Extraídas carteiras de {len(carteiras)} corretoras.")
+            return carteiras
+
+        # Lógica para baixar o histórico
+        ano_ini = ano_inicio if ano_inicio is not None else settings.ANO_INICIO_HISTORICO
+        mes_ini = mes_inicio if mes_inicio is not None else 1
+
+        logger.info(
+            f"Iniciando raspagem de histórico a partir de {ano_ini}-{mes_ini:02d}."
+        )
+        historico_resultado: Dict[str, List[Dict[str, Any]]] = {}
+
+        hoje = datetime.now(timezone.utc)
+        ano_atual = hoje.year
+        mes_atual = hoje.month
+
+        for ano in range(ano_ini, ano_atual + 1):
+            primeiro_mes = mes_ini if ano == ano_ini else 1
+            for mes in range(primeiro_mes, 13):
+                if ano == ano_atual and mes > mes_atual:
+                    break
+
+                mes_str = f"{ano}-{mes:02d}"
+
+                if mes_str in meses_ignorados:
+                    logger.info(f"[{mes_str}] Mês já presente no cache, pulando raspagem.")
+                    continue
+
+                # Formata URL histórica
+                url_historico = f"{url_base}/historico/{mes}/{ano}"
+
+                logger.debug(f"Acessando histórico {mes_str} na URL: {url_historico}")
+                try:
+                    response = session.get(url_historico, timeout=settings.REQUEST_TIMEOUT)
+                    response.raise_for_status()
+                    carteiras = _extrair_html_para_carteiras(response.content)
                     if carteiras:
                         historico_resultado[mes_str] = carteiras
                         logger.info(f"[{mes_str}] Extraídas carteiras de {len(carteiras)} corretoras.")
                     else:
                         logger.warning(f"[{mes_str}] Nenhuma carteira encontrada.")
-            except Exception as e:
-                logger.error(f"Erro ao acessar histórico {mes_str} ({url_historico}): {e}")
+                except requests.RequestException as e:
+                    logger.error(f"Erro ao acessar histórico {mes_str} ({url_historico}): {e}")
 
-            # Pequeno delay para não sobrecarregar o servidor
-            time.sleep(0.5)
+                # Pequeno delay para não sobrecarregar o servidor
+                time.sleep(0.5)
 
     return historico_resultado
+
 
