@@ -10,7 +10,7 @@ def test_settings_defaults() -> None:
     settings = Settings()
     
     assert settings.CARTEIRA_VALOR_URL == "https://infograficos.valor.globo.com/carteira-valor/"
-    assert settings.DB_PATH == "quant_consensus_prod.duckdb"
+    assert settings.DB_PATH == "data/quant_consensus_prod.duckdb"
     assert settings.ANO_INICIO_HISTORICO == 2022
     assert settings.REQUEST_TIMEOUT == 15
     assert "User-Agent" in settings.DEFAULT_HEADERS
