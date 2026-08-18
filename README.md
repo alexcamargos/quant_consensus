@@ -106,13 +106,22 @@ uv run python main.py
 O pipeline busca as recomendacoes do mes atual, persiste no DuckDB e exibe o
 ranking de consenso no terminal.
 
-### Historico completo (a partir de Jan/2022)
+### Historico (completo ou a partir de um periodo)
+
+Voce pode baixar todo o historico desde janeiro de 2022 ou focar em um periodo especifico passando um argumento.
 
 ```bash
+# Baixa todo o historico desde Jan/2022
 uv run python main.py --historico
+
+# Baixa a partir de janeiro de um ano especifico (ex: 2024)
+uv run python main.py --historico 2024
+
+# Baixa a partir de um mes e ano especificos (ex: Marco de 2024)
+uv run python main.py --historico 2024-03
 ```
 
-Baixa todas as carteiras mensais desde janeiro de 2022, armazenando cada mes
+Baixa as carteiras mensais do periodo especificado, armazenando cada mes
 no banco de dados. Meses ja presentes no cache sao ignorados automaticamente.
 
 ### Exemplo de saida
@@ -270,10 +279,12 @@ As configuracoes sao gerenciadas pela dataclass `Settings` em
 [`src/core/config.py`](src/core/config.py) e podem ser sobrescritas por
 variaveis de ambiente:
 
-| Variavel              | Padrao                                                        | Descricao                                  |
-|-----------------------|---------------------------------------------------------------|--------------------------------------------|
-| `CARTEIRA_VALOR_URL`  | `https://infograficos.valor.globo.com/carteira-valor/`        | URL base da pagina Carteira Valor          |
-| `DB_PATH`             | `quant_consensus_prod.duckdb`                                 | Caminho do arquivo DuckDB                  |
+| Variavel               | Padrao                                                        | Descricao                                  |
+|------------------------|---------------------------------------------------------------|--------------------------------------------|
+| `CARTEIRA_VALOR_URL`   | `https://infograficos.valor.globo.com/carteira-valor/`        | URL base da pagina Carteira Valor          |
+| `DB_PATH`              | `quant_consensus_prod.duckdb`                                 | Caminho do arquivo DuckDB                  |
+| `ANO_INICIO_HISTORICO` | `2022`                                                        | Ano base inicial para raspagem de historico|
+| `REQUEST_TIMEOUT`      | `15`                                                          | Timeout (em segundos) das requisicoes HTTP |
 
 ---
 
