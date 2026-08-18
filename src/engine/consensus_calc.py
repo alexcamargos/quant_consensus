@@ -120,10 +120,10 @@ def _inicializar_banco(conn: duckdb.DuckDBPyConnection) -> None:
             FROM carteiras
         ),
         desagregado AS (
-            SELECT mes_ref, corretora, unnest(tickers_atual) as ticker, tickers_anterior, 'atual' as source
+            SELECT mes_ref, corretora, unnest(tickers_atual) as ticker, tickers_anterior as tickers_comparacao, 'atual' as source
             FROM carteiras_com_lag
             UNION ALL
-            SELECT mes_ref, corretora, unnest(tickers_anterior) as ticker, tickers_atual, 'anterior' as source
+            SELECT mes_ref, corretora, unnest(tickers_anterior) as ticker, tickers_atual as tickers_comparacao, 'anterior' as source
             FROM carteiras_com_lag
         )
         SELECT DISTINCT
@@ -131,9 +131,9 @@ def _inicializar_banco(conn: duckdb.DuckDBPyConnection) -> None:
             corretora,
             ticker,
             CASE 
-                WHEN source = 'atual' AND NOT list_contains(tickers_anterior, ticker) THEN 'Entrada'
-                WHEN source = 'atual' AND list_contains(tickers_anterior, ticker) THEN 'Manutenção'
-                WHEN source = 'anterior' AND NOT list_contains(tickers_atual, ticker) THEN 'Saída'
+                WHEN source = 'atual' AND NOT list_contains(tickers_comparacao, ticker) THEN 'Entrada'
+                WHEN source = 'atual' AND list_contains(tickers_comparacao, ticker) THEN 'Manutenção'
+                WHEN source = 'anterior' AND NOT list_contains(tickers_comparacao, ticker) THEN 'Saída'
             END AS status
         FROM desagregado
         WHERE status IS NOT NULL
