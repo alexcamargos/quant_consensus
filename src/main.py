@@ -138,6 +138,15 @@ def main() -> None:
     if mes_referencia in meses_salvos:
         meses_salvos.remove(mes_referencia)
 
+    if meses_salvos:
+        logger.info(
+            f"{len(meses_salvos)} mês(es) já presente(s) no banco de dados "
+            f"e não serão baixados novamente: "
+            f"{', '.join(sorted(meses_salvos))}"
+        )
+    else:
+        logger.info("Nenhum dado histórico encontrado no banco de dados. Todos os meses serão baixados.")
+
     # Determina se estamos no modo histórico e qual o período
     baixar_historico = args.historico is not None
     ano_inicio: int | None = None
