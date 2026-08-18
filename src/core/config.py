@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -15,6 +15,12 @@ class Settings:
 
     # Histórico
     ANO_INICIO_HISTORICO: int = 2022
+
+    # HTTP / Scraping
+    REQUEST_TIMEOUT: int = 15
+    DEFAULT_HEADERS: dict[str, str] = field(default_factory=lambda: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    })
 
 
 settings = Settings()
