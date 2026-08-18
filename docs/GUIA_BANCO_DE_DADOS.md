@@ -2,8 +2,8 @@
 
 O projeto **QuantConsensus** utiliza o [DuckDB](https://duckdb.org/) como motor analítico e Data Warehouse local. O DuckDB foi escolhido por ser um banco de dados relacional embarcado voltado nativamente para processamento colunar e análises analíticas (OLAP), oferecendo excelente performance em consultas pesadas.
 
-O arquivo do banco de dados de produção é gerado automaticamente na raiz do projeto com o nome:
-`quant_consensus_prod.duckdb`
+O arquivo do banco de dados de produção é gerado automaticamente na pasta `data/` do projeto com o nome:
+`data/quant_consensus_prod.duckdb`
 
 ---
 
@@ -15,7 +15,7 @@ A forma mais amigável de visualizar tabelas, views e rodar querys manuais é us
 **No DBeaver:**
 1. Clique em **Nova Conexão**.
 2. Selecione **DuckDB**.
-3. No campo `Path`, aponte para o arquivo `quant_consensus_prod.duckdb` na pasta do seu projeto.
+3. No campo `Path`, aponte para o arquivo `data/quant_consensus_prod.duckdb` na pasta do seu projeto.
 4. Clique em **Concluir** e expanda a conexão para ver as views e tabelas.
 
 ### Via Python
@@ -26,7 +26,7 @@ import duckdb
 import pandas as pd
 
 # Conecta ao arquivo (cria se não existir)
-conn = duckdb.connect('quant_consensus_prod.duckdb')
+conn = duckdb.connect('data/quant_consensus_prod.duckdb')
 
 # Executa uma query e retorna direto como um DataFrame do Pandas
 df = conn.execute("SELECT * FROM vw_carteira_consolidada WHERE mes_ref = '2026-08'").df()
@@ -36,7 +36,7 @@ print(df)
 ### Via Linha de Comando (CLI)
 Se você tiver a CLI do DuckDB instalada, basta abrir o terminal na pasta do projeto e rodar:
 ```bash
-duckdb quant_consensus_prod.duckdb
+duckdb data/quant_consensus_prod.duckdb
 ```
 E você poderá rodar os comandos SQL diretamente no terminal.
 

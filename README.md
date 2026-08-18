@@ -145,10 +145,10 @@ RANK   | TICKER   | VOTOS    | VOLUME MEDIO
 ## Banco de Dados
 
 O projeto utiliza **DuckDB** como data warehouse local embarcado. O arquivo e
-gerado automaticamente na raiz do projeto:
+gerado automaticamente na pasta `data/` do projeto:
 
 ```
-quant_consensus_prod.duckdb
+data/quant_consensus_prod.duckdb
 ```
 
 ### Tabelas
@@ -282,7 +282,7 @@ variaveis de ambiente:
 | Variavel               | Padrao                                                        | Descricao                                  |
 |------------------------|---------------------------------------------------------------|--------------------------------------------|
 | `CARTEIRA_VALOR_URL`   | `https://infograficos.valor.globo.com/carteira-valor/`        | URL base da pagina Carteira Valor          |
-| `DB_PATH`              | `quant_consensus_prod.duckdb`                                 | Caminho do arquivo DuckDB                  |
+| `DB_PATH`              | `data/quant_consensus_prod.duckdb`                            | Caminho do arquivo DuckDB                  |
 | `ANO_INICIO_HISTORICO` | `2022`                                                        | Ano base inicial para raspagem de historico|
 | `REQUEST_TIMEOUT`      | `15`                                                          | Timeout (em segundos) das requisicoes HTTP |
 
